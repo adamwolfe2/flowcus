@@ -1,63 +1,69 @@
 'use client'
 
-import { useState } from 'react'
-import dynamic from 'next/dynamic'
-import Sidebar from '@/components/Sidebar'
-import DetailPanel from '@/components/DetailPanel'
-
-const FlowCanvas = dynamic(() => import('@/components/FlowCanvas'), {
-  ssr: false,
-})
-
-interface Project {
-  id: string
-  name: string
-  description: string | null
-  color: string
-  icon: string
-  positionX: number
-  positionY: number
-  tasks: any[]
-  notes: any[]
-  ideas: any[]
-}
+import TodaysFocus from '@/components/dashboard/TodaysFocus'
+import QuickStats from '@/components/dashboard/QuickStats'
+import ActivityFeed from '@/components/dashboard/ActivityFeed'
+import AgentWidget from '@/components/agent'
+import Link from 'next/link'
+import { Network, List } from 'lucide-react'
 
 export default function Home() {
-  const [selectedProject, setSelectedProject] = useState<Project | null>(null)
-  const [refreshKey, setRefreshKey] = useState(0)
-
-  const handleRefresh = () => {
-    setRefreshKey((prev) => prev + 1)
-  }
-
-  const handleCreateProject = () => {
-    // TODO: Implement create project modal
-    alert('Create project feature coming soon!')
-  }
-
-  const handleCreateTask = () => {
-    // TODO: Implement create task modal
-    alert('Create task feature coming soon!')
-  }
+  const currentHour = new Date().getHours()
+  const greeting =
+    currentHour < 12 ? 'Good morning' :
+    currentHour < 17 ? 'Good afternoon' :
+    'Good evening'
 
   return (
-    <div className="flex h-screen w-screen overflow-hidden bg-gray-950 text-white">
-      <Sidebar
-        onCreateProject={handleCreateProject}
-        onCreateTask={handleCreateTask}
-      />
+    <div className="min-h-screen bg-gray-950 text-white">
+      <div className="p-8 max-w-7xl mx-auto">
+        <div className="mb-8 flex items-start justify-between">
+          <div>
+            <h1 className="text-4xl font-bold mb-2">
+              {greeting}! <span className="wave">👋</span>
+            </h1>
+            <p className="text-gray-400">Welcome to your Flowcus dashboard</p>
+          </div>
+          <div className="flex gap-3">
+            <Link
+              href="/canvas"
+              className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg transition-colors flex items-center gap-2"
+            >
+              <Network className="w-4 h-4" />
+              Canvas View
+            </Link>
+            <Link
+              href="/rocks"
+              className="px-4 py-2 bg-gray-800 hover:bg-gray-700 text-white rounded-lg transition-colors flex items-center gap-2"
+            >
+              <List className="w-4 h-4" />
+              All Rocks
+            </Link>
+          </div>
+        </div>
 
-      <main className="flex-1 relative">
-        <FlowCanvas key={refreshKey} onNodeSelect={setSelectedProject} />
-      </main>
+        <TodaysFocus />
 
-      {selectedProject && (
-        <DetailPanel
-          project={selectedProject}
-          onClose={() => setSelectedProject(null)}
-          onRefresh={handleRefresh}
-        />
-      )}
+        <QuickStats />
+
+        <ActivityFeed />
+      </div>
+
+      {/* AI Agent Chat Interface */}
+      <AgentWidget />
+
+      <style jsx>{`
+        .wave {
+          animation: wave 1s ease-in-out;
+          display: inline-block;
+        }
+
+        @keyframes wave {
+          0%, 100% { transform: rotate(0deg); }
+          25% { transform: rotate(20deg); }
+          75% { transform: rotate(-20deg); }
+        }
+      `}</style>
     </div>
   )
 }

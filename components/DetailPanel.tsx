@@ -1,34 +1,33 @@
 'use client'
 
 import { useState } from 'react'
-import { X, Plus, Calendar, CheckSquare, FileText, Lightbulb } from 'lucide-react'
+import { X, Plus, Calendar, CheckSquare, FileText, Lightbulb, Target, TrendingUp } from 'lucide-react'
 import { format } from 'date-fns'
-import { useStore, Task } from '@/lib/store'
+import { useStore, Rock, SubRock, Task, Note, Idea, RockStatus } from '@/lib/store'
+import StatusBadge from './rocks/StatusBadge'
+import ProgressBar from './rocks/ProgressBar'
+import SubRockList from './rocks/SubRockList'
 
-interface Project {
-  id: string
-  name: string
-  description: string
-  color: string
-  icon: string
+interface RockWithDetails extends Rock {
+  subRocks: SubRock[]
   tasks: Task[]
-  notes: any[]
-  ideas: any[]
+  notes: Note[]
+  ideas: Idea[]
 }
 
 interface DetailPanelProps {
-  project: Project | null
+  rock: RockWithDetails | null
   onClose: () => void
   onRefresh: () => void
 }
 
-export default function DetailPanel({ project, onClose, onRefresh }: DetailPanelProps) {
-  const [activeTab, setActiveTab] = useState<'tasks' | 'notes' | 'ideas'>('tasks')
+export default function DetailPanel({ rock, onClose, onRefresh }: DetailPanelProps) {
+  const [activeTab, setActiveTab] = useState<'overview' | 'subrocks' | 'tasks' | 'notes' | 'ideas'>('overview')
   const [isAddingTask, setIsAddingTask] = useState(false)
   const [newTaskTitle, setNewTaskTitle] = useState('')
-  const { addTask, updateTask } = useStore()
+  const { addTask, updateTask, updateRock } = useStore()
 
-  if (!project) return null
+  if (!rock) return null
 
   const handleAddTask = () => {
     if (!newTaskTitle.trim()) return
@@ -36,13 +35,17 @@ export default function DetailPanel({ project, onClose, onRefresh }: DetailPanel
     addTask({
       title: newTaskTitle,
       description: '',
+      rockId: rock.id,
+      subRockId: null,
       status: 'todo',
       priority: 'medium',
       dueDate: null,
+      completedDate: null,
       source: 'manual',
       externalId: null,
       url: null,
-      projectId: project.id,
+      tags: [],
+      timeEstimate: null,
     })
 
     setNewTaskTitle('')
@@ -62,11 +65,16 @@ export default function DetailPanel({ project, onClose, onRefresh }: DetailPanel
       <div className="p-4 border-b border-gray-800 flex items-start justify-between">
         <div className="flex-1">
           <div className="flex items-center gap-2 mb-2">
-            <span className="text-3xl">{project.icon}</span>
-            <h2 className="text-xl font-bold text-white">{project.name}</h2>
+            <span className="text-3xl">{rock.icon}</span>
+            <div className="flex-1">
+              <h2 className="text-xl font-bold text-white">{rock.name}</h2>
+              {rock.category && (
+                <p className="text-xs text-gray-500">{rock.category}</p>
+              )}
+            </div>
           </div>
-          {project.description && (
-            <p className="text-sm text-gray-400">{project.description}</p>
+          {rock.description && (
+            <p className="text-sm text-gray-400">{rock.description}</p>
           )}
         </div>
         <button
@@ -77,46 +85,167 @@ export default function DetailPanel({ project, onClose, onRefresh }: DetailPanel
         </button>
       </div>
 
-      <div className="flex border-b border-gray-800">
+      <div className="flex border-b border-gray-800 overflow-x-auto">
+        <button
+          onClick={() => setActiveTab('overview')}
+          className={`px-3 py-3 text-sm font-medium transition-colors flex items-center justify-center gap-2 whitespace-nowrap ${
+            activeTab === 'overview'
+              ? 'text-white border-b-2 border-indigo-500'
+              : 'text-gray-400 hover:text-white'
+          }`}
+        >
+          <Target className="w-4 h-4" />
+          Overview
+        </button>
+        <button
+          onClick={() => setActiveTab('subrocks')}
+          className={`px-3 py-3 text-sm font-medium transition-colors flex items-center justify-center gap-2 whitespace-nowrap ${
+            activeTab === 'subrocks'
+              ? 'text-white border-b-2 border-indigo-500'
+              : 'text-gray-400 hover:text-white'
+          }`}
+        >
+          <TrendingUp className="w-4 h-4" />
+          Sub-Rocks ({rock.subRocks?.length || 0})
+        </button>
         <button
           onClick={() => setActiveTab('tasks')}
-          className={`flex-1 px-4 py-3 text-sm font-medium transition-colors flex items-center justify-center gap-2 ${
+          className={`px-3 py-3 text-sm font-medium transition-colors flex items-center justify-center gap-2 whitespace-nowrap ${
             activeTab === 'tasks'
               ? 'text-white border-b-2 border-indigo-500'
               : 'text-gray-400 hover:text-white'
           }`}
         >
           <CheckSquare className="w-4 h-4" />
-          Tasks ({project.tasks?.length || 0})
+          Tasks ({rock.tasks?.length || 0})
         </button>
         <button
           onClick={() => setActiveTab('notes')}
-          className={`flex-1 px-4 py-3 text-sm font-medium transition-colors flex items-center justify-center gap-2 ${
+          className={`px-3 py-3 text-sm font-medium transition-colors flex items-center justify-center gap-2 whitespace-nowrap ${
             activeTab === 'notes'
               ? 'text-white border-b-2 border-indigo-500'
               : 'text-gray-400 hover:text-white'
           }`}
         >
           <FileText className="w-4 h-4" />
-          Notes ({project.notes?.length || 0})
+          Notes ({rock.notes?.length || 0})
         </button>
         <button
           onClick={() => setActiveTab('ideas')}
-          className={`flex-1 px-4 py-3 text-sm font-medium transition-colors flex items-center justify-center gap-2 ${
+          className={`px-3 py-3 text-sm font-medium transition-colors flex items-center justify-center gap-2 whitespace-nowrap ${
             activeTab === 'ideas'
               ? 'text-white border-b-2 border-indigo-500'
               : 'text-gray-400 hover:text-white'
           }`}
         >
           <Lightbulb className="w-4 h-4" />
-          Ideas ({project.ideas?.length || 0})
+          Ideas ({rock.ideas?.length || 0})
         </button>
       </div>
 
       <div className="flex-1 overflow-y-auto p-4">
+        {activeTab === 'overview' && (
+          <div className="space-y-4">
+            {/* Status Section */}
+            <div>
+              <label className="text-xs font-medium text-gray-400 block mb-2">
+                Status
+              </label>
+              <StatusBadge status={rock.status} size="lg" />
+              <div className="mt-2 flex flex-wrap gap-1">
+                {(['not_started', 'in_progress', 'on_track', 'at_risk', 'complete'] as RockStatus[]).map(
+                  (status) => (
+                    <button
+                      key={status}
+                      onClick={() => {
+                        updateRock(rock.id, { status })
+                        onRefresh()
+                      }}
+                      className={`px-2 py-1 text-xs rounded transition-colors ${
+                        rock.status === status
+                          ? 'bg-indigo-600 text-white'
+                          : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                      }`}
+                    >
+                      {status.replace('_', ' ')}
+                    </button>
+                  )
+                )}
+              </div>
+            </div>
+
+            {/* Progress Section */}
+            <div>
+              <label className="text-xs font-medium text-gray-400 block mb-2">
+                Overall Progress
+              </label>
+              <ProgressBar progress={rock.progress} height={12} showLabel={true} />
+              <div className="mt-2">
+                <input
+                  type="range"
+                  min="0"
+                  max="100"
+                  step="5"
+                  value={rock.progress}
+                  onChange={(e) => {
+                    updateRock(rock.id, { progress: parseInt(e.target.value) })
+                    onRefresh()
+                  }}
+                  className="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer accent-indigo-500"
+                />
+              </div>
+            </div>
+
+            {/* Target Section */}
+            {rock.target && (
+              <div>
+                <label className="text-xs font-medium text-gray-400 block mb-1">
+                  SMART Goal / Target
+                </label>
+                <p className="text-sm text-white bg-gray-800 p-3 rounded-lg">
+                  {rock.target}
+                </p>
+              </div>
+            )}
+
+            {/* Target Date */}
+            {rock.targetDate && (
+              <div>
+                <label className="text-xs font-medium text-gray-400 block mb-1">
+                  Target Date
+                </label>
+                <div className="flex items-center gap-2 text-sm text-white">
+                  <Calendar className="w-4 h-4" />
+                  <span>{format(new Date(rock.targetDate), 'MMMM d, yyyy')}</span>
+                </div>
+              </div>
+            )}
+
+            {/* Summary Stats */}
+            <div className="grid grid-cols-3 gap-2">
+              <div className="bg-gray-800 p-3 rounded-lg text-center">
+                <div className="text-2xl font-bold text-white">{rock.subRocks?.length || 0}</div>
+                <div className="text-xs text-gray-400">Sub-Rocks</div>
+              </div>
+              <div className="bg-gray-800 p-3 rounded-lg text-center">
+                <div className="text-2xl font-bold text-white">{rock.tasks?.length || 0}</div>
+                <div className="text-xs text-gray-400">Tasks</div>
+              </div>
+              <div className="bg-gray-800 p-3 rounded-lg text-center">
+                <div className="text-2xl font-bold text-white">{rock.notes?.length || 0}</div>
+                <div className="text-xs text-gray-400">Notes</div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {activeTab === 'subrocks' && (
+          <SubRockList rockId={rock.id} />
+        )}
+
         {activeTab === 'tasks' && (
           <div className="space-y-2">
-            {project.tasks?.map((task) => (
+            {rock.tasks?.map((task) => (
               <div
                 key={task.id}
                 className="p-3 bg-gray-800 rounded-lg hover:bg-gray-750 transition-colors"
@@ -195,10 +324,10 @@ export default function DetailPanel({ project, onClose, onRefresh }: DetailPanel
 
         {activeTab === 'notes' && (
           <div className="space-y-2">
-            {project.notes?.length === 0 && (
+            {rock.notes?.length === 0 && (
               <p className="text-sm text-gray-500 text-center py-8">No notes yet</p>
             )}
-            {project.notes?.map((note) => (
+            {rock.notes?.map((note) => (
               <div key={note.id} className="p-3 bg-gray-800 rounded-lg">
                 <h4 className="text-sm font-medium text-white mb-1">{note.title}</h4>
                 <p className="text-xs text-gray-400 line-clamp-3">{note.content}</p>
@@ -212,10 +341,10 @@ export default function DetailPanel({ project, onClose, onRefresh }: DetailPanel
 
         {activeTab === 'ideas' && (
           <div className="space-y-2">
-            {project.ideas?.length === 0 && (
+            {rock.ideas?.length === 0 && (
               <p className="text-sm text-gray-500 text-center py-8">No ideas yet</p>
             )}
-            {project.ideas?.map((idea) => (
+            {rock.ideas?.map((idea) => (
               <div key={idea.id} className="p-3 bg-gray-800 rounded-lg">
                 <h4 className="text-sm font-medium text-white mb-1">{idea.title}</h4>
                 <p className="text-xs text-gray-400 line-clamp-3">{idea.content}</p>

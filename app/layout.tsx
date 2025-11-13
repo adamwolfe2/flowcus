@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import './globals.css'
+import { AgentEngineProvider } from '@/components/AgentEngineProvider'
 
 export const metadata: Metadata = {
   title: 'Flowcus - Your Neural Network Dashboard',
@@ -13,7 +14,11 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body>{children}</body>
+      <body>
+        <AgentEngineProvider>
+          {children}
+        </AgentEngineProvider>
+      </body>
     </html>
   )
 }

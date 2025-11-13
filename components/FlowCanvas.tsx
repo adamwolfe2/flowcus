@@ -15,52 +15,58 @@ import ReactFlow, {
 } from 'reactflow'
 import 'reactflow/dist/style.css'
 
-import ProjectNode from './ProjectNode'
-import { useStore, Project } from '@/lib/store'
+import RockNode from './RockNode'
+import { useStore, Rock, SubRock, Task, Note, Idea } from '@/lib/store'
 
 const nodeTypes: NodeTypes = {
-  project: ProjectNode,
+  rock: RockNode,
 }
 
-interface ProjectWithDetails extends Project {
-  tasks: any[]
-  notes: any[]
-  ideas: any[]
+interface RockWithDetails extends Rock {
+  subRocks: SubRock[]
+  tasks: Task[]
+  notes: Note[]
+  ideas: Idea[]
 }
 
 interface FlowCanvasProps {
-  onNodeSelect: (project: ProjectWithDetails | null) => void
+  onNodeSelect: (rock: RockWithDetails | null) => void
 }
 
 export default function FlowCanvas({ onNodeSelect }: FlowCanvasProps) {
   const [nodes, setNodes, onNodesChange] = useNodesState([])
   const [edges, setEdges, onEdgesChange] = useEdgesState([])
-  const { projects, tasks, notes, ideas, updateProject } = useStore()
+  const { rocks, subRocks, tasks, notes, ideas, updateRock } = useStore()
 
   useEffect(() => {
-    const flowNodes: Node[] = projects.map((project) => {
-      const projectTasks = tasks.filter((t) => t.projectId === project.id)
-      const projectNotes = notes.filter((n) => n.projectId === project.id)
-      const projectIdeas = ideas.filter((i) => i.projectId === project.id)
+    const flowNodes: Node[] = rocks.map((rock) => {
+      const rockSubRocks = subRocks.filter((sr) => sr.rockId === rock.id)
+      const rockTasks = tasks.filter((t) => t.rockId === rock.id)
+      const rockNotes = notes.filter((n) => n.rockId === rock.id)
+      const rockIdeas = ideas.filter((i) => i.rockId === rock.id)
 
       return {
-        id: project.id,
-        type: 'project',
-        position: { x: project.positionX, y: project.positionY },
+        id: rock.id,
+        type: 'rock',
+        position: { x: rock.positionX, y: rock.positionY },
         data: {
-          name: project.name,
-          description: project.description,
-          color: project.color,
-          icon: project.icon,
-          taskCount: projectTasks.length,
-          noteCount: projectNotes.length,
-          ideaCount: projectIdeas.length,
+          name: rock.name,
+          description: rock.description,
+          color: rock.color,
+          icon: rock.icon,
+          status: rock.status,
+          progress: rock.progress,
+          category: rock.category,
+          taskCount: rockTasks.length,
+          noteCount: rockNotes.length,
+          subRockCount: rockSubRocks.length,
           onNodeClick: () => {
             onNodeSelect({
-              ...project,
-              tasks: projectTasks,
-              notes: projectNotes,
-              ideas: projectIdeas,
+              ...rock,
+              subRocks: rockSubRocks,
+              tasks: rockTasks,
+              notes: rockNotes,
+              ideas: rockIdeas,
             })
           },
         },
@@ -68,7 +74,7 @@ export default function FlowCanvas({ onNodeSelect }: FlowCanvasProps) {
     })
 
     setNodes(flowNodes)
-  }, [projects, tasks, notes, ideas, setNodes, onNodeSelect])
+  }, [rocks, subRocks, tasks, notes, ideas, setNodes, onNodeSelect])
 
   const onConnect = useCallback(
     (params: Connection) => setEdges((eds) => addEdge(params, eds)),
@@ -77,12 +83,12 @@ export default function FlowCanvas({ onNodeSelect }: FlowCanvasProps) {
 
   const onNodeDragStop = useCallback(
     (_event: any, node: Node) => {
-      updateProject(node.id, {
+      updateRock(node.id, {
         positionX: node.position.x,
         positionY: node.position.y,
       })
     },
-    [updateProject]
+    [updateRock]
   )
 
   return (
@@ -103,8 +109,8 @@ export default function FlowCanvas({ onNodeSelect }: FlowCanvasProps) {
         <MiniMap
           className="bg-gray-900 border border-gray-700"
           nodeColor={(node) => {
-            const project = projects.find((p) => p.id === node.id)
-            return project?.color || '#6366f1'
+            const rock = rocks.find((r) => r.id === node.id)
+            return rock?.color || '#6366f1'
           }}
         />
       </ReactFlow>
